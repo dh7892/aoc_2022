@@ -1,31 +1,80 @@
-fn line_to_score(input: &str) -> u32 {
-    match input {
-        "A X" => 1+3,
-        "A Y" => 2+6,
-        "A Z" => 3+0,
-        "B X" => 1+0,
-        "B Y" => 2+3,
-        "B Z" => 3+6,
-        "C X" => 1+6,
-        "C Y" => 2+0,
-        "C Z" => 3+3,
-        _ => 0
+use std::str::FromStr;
+
+enum Move {
+    Rock = 1,
+    Paper = 2,
+    Scissors = 3,
+}
+impl FromStr for Move {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "A" | "X" => Ok(Move::Rock),
+            "B" | "Y" => Ok(Move::Paper),
+            "C" | "Z" => Ok(Move::Scissors),
+            _ => Err("Not a known move".to_owned())
+        }
     }
 }
 
-fn work_out_score(input: &str) -> u32 {
-    match input {
-        "A X" => 3+0,
-        "A Y" => 1+3,
-        "A Z" => 2+6,
-        "B X" => 1+0,
-        "B Y" => 2+3,
-        "B Z" => 3+6,
-        "C X" => 2+0,
-        "C Y" => 3+3,
-        "C Z" => 1+6,
-        _ => 0
+enum Outcome {
+    Lose = 0,
+    Draw = 3,
+    Win = 6,
+}
+
+impl FromStr for Outcome {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "X" => Ok(Outcome::Lose),
+            "Y" => Ok(Outcome::Draw),
+            "Z" => Ok(Outcome::Win),
+            _ => Err("Not a known outcome".to_owned())
+        }
     }
+}
+
+
+fn line_to_score(input: &str) -> u32 {
+    let mut split = input.split(" ");
+    let their_move = split.next().unwrap().parse::<Move>().unwrap();
+    let my_move =  split.next().unwrap().parse::<Move>().unwrap();
+    let outcome = match (&their_move, &my_move) {
+        (Move::Rock, Move::Rock) => Outcome::Draw,
+        (Move::Rock, Move::Paper) => Outcome::Win,
+        (Move::Rock, Move::Scissors) => Outcome::Lose,
+
+        (Move::Paper, Move::Rock) => Outcome::Lose,
+        (Move::Paper, Move::Paper) => Outcome::Draw,
+        (Move::Paper, Move::Scissors) => Outcome::Win,
+
+        (Move::Scissors, Move::Rock) => Outcome::Win,
+        (Move::Scissors, Move::Paper) => Outcome::Lose,
+        (Move::Scissors, Move::Scissors) => Outcome::Draw,
+    };
+    my_move as u32 + outcome as u32
+}
+
+fn work_out_score(input: &str) -> u32 {
+    let mut split = input.split(" ");
+    let their_move = split.next().unwrap().parse::<Move>().unwrap();
+    let outcome =  split.next().unwrap().parse::<Outcome>().unwrap();
+    let my_move = match (&their_move, &outcome) {
+        (Move::Rock, Outcome::Draw) => Move::Rock,
+        (Move::Rock, Outcome::Win) => Move::Paper,
+        (Move::Rock, Outcome::Lose) => Move::Scissors,
+
+        (Move::Paper, Outcome::Lose) => Move::Rock,
+        (Move::Paper, Outcome::Draw) => Move::Paper,
+        (Move::Paper, Outcome::Win) => Move::Scissors,
+
+        (Move::Scissors,  Outcome::Win) => Move::Rock,
+        (Move::Scissors,  Outcome::Lose) => Move::Paper,
+        (Move::Scissors,  Outcome::Draw) => Move::Scissors,
+    };
+    my_move as u32 + outcome as u32
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -57,7 +106,7 @@ mod tests {
     #[test]
     fn test_part_one() {
         let input = aoc::read_file("examples", 2);
-        assert_eq!(part_one(&input), None);
+        assert_eq!(part_one(&input), Some(15));
     }
 
     #[test]
