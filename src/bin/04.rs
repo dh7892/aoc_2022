@@ -1,67 +1,53 @@
-fn line_to_score(line: &str) -> u32 {
-    let mut domains = line.split(',');
-    let d1 = domains
-        .next()
-        .unwrap()
-        .split('-')
-        .map(|item| item.parse::<u32>().unwrap())
-        .collect::<Vec<_>>();
-    let d2 = domains
-        .next()
-        .unwrap()
-        .split('-')
-        .map(|item| item.parse::<u32>().unwrap())
-        .collect::<Vec<_>>();
+use std::ops::RangeInclusive;
 
-    let (mut outer_min, mut outer_max) = (d1[0], d1[1]);
-    let (mut inner_min, mut inner_max) = (d2[0], d2[1]);
-    if d1[1] - d1[0] < d2[1] - d2[0] {
-        (outer_min, outer_max) = (d2[0], d2[1]);
-        (inner_min, inner_max) = (d1[0], d1[1]);
-    }
+use nom::bytes::complete::tag;
+use nom::character::complete::{newline, u32 as nom32};
+use nom::multi::separated_list1;
+use nom::sequence::separated_pair;
+use nom::{self, IResult};
 
-    if inner_min >= outer_min && inner_max <= outer_max {
-        // dbg!((outer_min, outer_max, inner_min, inner_max, "intersecting"));
-        1
-    } else {
-        // dbg!((outer_min, outer_max, inner_min, inner_max, "not"));
-        0
-    }
+fn assignment(input: &str) -> IResult<&str, RangeInclusive<u32>> {
+    let (input, (start, end)) = separated_pair(nom32, tag("-"), nom32)(input)?;
+    Ok((input, start..=end))
 }
 
-fn line_to_overlap(line: &str) -> u32 {
-    let mut domains = line.split(',');
-    let d1 = domains
-        .next()
-        .unwrap()
-        .split('-')
-        .map(|item| item.parse::<u32>().unwrap())
-        .collect::<Vec<_>>();
-    let d2 = domains
-        .next()
-        .unwrap()
-        .split('-')
-        .map(|item| item.parse::<u32>().unwrap())
-        .collect::<Vec<_>>();
+fn assignments(input: &str) -> IResult<&str, (RangeInclusive<u32>, RangeInclusive<u32>)> {
+    let (input, (first, second)) = separated_pair(assignment, tag(","), assignment)(input)?;
+    Ok((input, (first, second)))
+}
 
-    let (a_s, a_e) = (d1[0], d1[1]);
-    let (b_s, b_e) = (d2[0], d2[1]);
+fn all_assignments(input: &str) -> IResult<&str, Vec<(RangeInclusive<u32>, RangeInclusive<u32>)>> {
+    let (input, all_assignments) = separated_list1(newline, assignments)(input)?;
+    Ok((input, all_assignments))
+}
 
-    if a_s > b_e || b_s > a_e {
-        0
-    } else {
-        1
-    }
+/// Return true if one range completely contains the other
+fn range_contains(r1: &RangeInclusive<u32>, r2: &RangeInclusive<u32>) -> bool {
+    (r1.start() <= r2.start() && r1.end() >= r2.end())
+        || (r2.start() <= r1.start() && r2.end() >= r1.end())
+}
+
+/// Return true if one range overlaps the other
+fn range_overlap(r1: &RangeInclusive<u32>, r2: &RangeInclusive<u32>) -> bool {
+    !(r1.start() > r2.end() || r2.start() > r1.end())
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let total = input.lines().map(line_to_score).sum();
-    Some(total)
+    let (_, lines) = all_assignments(input).unwrap();
+    let result = lines
+        .into_iter()
+        .filter(|(r1, r2)| range_contains(r1, r2))
+        .count();
+    Some(result as u32)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let total = input.lines().map(line_to_overlap).sum();
-    Some(total)
+    let (_, lines) = all_assignments(input).unwrap();
+    let result = lines
+        .into_iter()
+        .filter(|(r1, r2)| range_overlap(r1, r2))
+        .count();
+    Some(result as u32)
 }
 
 fn main() {
