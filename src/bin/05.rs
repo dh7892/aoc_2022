@@ -1,3 +1,28 @@
+use nom::branch::alt;
+use nom::bytes::complete::tag;
+use nom::character::complete;
+use nom::character::complete::alpha1;
+use nom::multi::separated_list1;
+use nom::{sequence::delimited, IResult};
+
+fn parse_crate(input: &str) -> IResult<&str, Option<char>> {
+    let (input, c) = alt((
+        tag("   "),
+        delimited(complete::char('['), alpha1, complete::char(']')),
+    ))(input)?;
+
+    let result = match c {
+        "   " => None,
+        value => Some(value.chars().next().unwrap()),
+    };
+    Ok((input, result))
+}
+
+fn parse_line(input: &str) -> IResult<&str, Vec<Option<char>>> {
+    let (input, result) = separated_list1(complete::char(' '), parse_crate)(input)?;
+    Ok((input, result))
+}
+
 pub fn part_one(input: &str) -> Option<String> {
     let mut stacks: Vec<Vec<char>> = Vec::new();
     let mut sections = input.split("\n\n");
