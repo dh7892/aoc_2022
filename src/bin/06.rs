@@ -1,41 +1,21 @@
-use std::collections::HashSet;
+use itertools::Itertools;
+
+fn solve_with_window(input: &str, window_length: usize) -> Option<u32> {
+    let (idx, _) = input
+        .as_bytes()
+        .windows(window_length)
+        .enumerate()
+        .find(|(_, window)| window.iter().all_unique())
+        .unwrap();
+    Some((idx + window_length) as u32)
+}
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let data: Vec<char> = input.chars().collect();
-    let mut buffer: Vec<char> = Vec::new();
-    for (idx, bit) in data.iter().enumerate() {
-        buffer.push(bit.clone());
-        if buffer.len() > 4 {
-            buffer.remove(0);
-        }
-        if buffer.len() == 4 {
-            let set = HashSet::<char>::from_iter(buffer.iter().cloned());
-            if set.len() == 4 {
-                return Some(idx as u32 + 1);
-            }
-        }
-    }
-
-    None
+    solve_with_window(input, 4)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let data: Vec<char> = input.chars().collect();
-    let mut buffer: Vec<char> = Vec::new();
-    for (idx, bit) in data.iter().enumerate() {
-        buffer.push(bit.clone());
-        if buffer.len() > 14 {
-            buffer.remove(0);
-        }
-        if buffer.len() == 14 {
-            let set = HashSet::<char>::from_iter(buffer.iter().cloned());
-            if set.len() == 14 {
-                return Some(idx as u32 + 1);
-            }
-        }
-    }
-
-    None
+    solve_with_window(input, 14)
 }
 
 fn main() {
