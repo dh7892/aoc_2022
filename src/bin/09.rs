@@ -9,52 +9,41 @@ struct Posn {
 // Given head and tail positions, return new tail position
 fn move_tail(head: Posn, tail: Posn) -> Posn {
     let (d_x, d_y) = (tail.x - head.x, tail.y - head.y);
-    let mut move_x = 0;
-    let mut move_y = 0;
-    if d_x == 0 || d_y == 0 {
-        if d_x == -2 {
-            move_x = 1
-        };
-        if d_x == 2 {
-            move_x = -1
-        };
-        if d_y == -2 {
-            move_y = 1
-        };
-        if d_y == 2 {
-            move_y = -1
+
+    if d_x.abs() <= 1 && d_y.abs() <= 1 {
+        // We are still close enough so no need to move tail
+        return tail.clone();
+    }
+    if d_x.abs() == d_y.abs() {
+        // We are on a diagonal so we need to stay on the diagonal
+        return Posn {
+            x: head.x + d_x / d_x.abs(),
+            y: head.y + d_y / d_y.abs(),
         };
     }
-    if d_x < -1 || d_x > 1 || d_y < -1 || d_y > 1 {
-        // Need to move diagonally
-        if d_x < 0 {
-            move_x = 1;
-        }
-        if d_x > 0 {
-            move_x = -1;
-        }
-        if d_y < 0 {
-            move_y = 1;
-        }
-        if d_y > 0 {
-            move_y = -1;
-        }
+    if d_x.abs() > d_y.abs() {
+        // x direction dominates so y will end up level with head
+        return Posn {
+            x: head.x + d_x / d_x.abs(),
+            y: head.y,
+        };
+    }
+    if d_x.abs() < d_y.abs() {
+        // y direction dominates so x will end up level with head
+        return Posn {
+            x: head.x,
+            y: head.y + d_y / d_y.abs(),
+        };
     }
 
     Posn {
-        x: tail.x + move_x,
-        y: tail.y + move_y,
+        x: tail.x,
+        y: tail.y,
     }
 }
 
 // Apply all moves for a line and update head and tail. Track all tail locations visited
-fn execute_line(
-    direction: &str,
-    count: u32,
-    head: &mut Posn,
-    tail: &mut Posn,
-    visited: &mut HashSet<Posn>,
-) {
+fn execute_line(direction: &str, count: u32, rope: &mut Vec<Posn>, visited: &mut HashSet<Posn>) {
     let delta = match direction {
         "U" => Posn { x: 0, y: 1 },
         "D" => Posn { x: 0, y: -1 },
@@ -63,32 +52,48 @@ fn execute_line(
         _ => Posn { x: 0, y: 0 },
     };
     for _ in 0..count {
-        visited.insert(tail.clone());
-        head.x += delta.x;
-        head.y += delta.y;
-        let new_tail = move_tail(head.clone(), tail.clone());
-        tail.x = new_tail.x;
-        tail.y = new_tail.y;
-        visited.insert(tail.clone());
+        // Move the very head of the rope first
+        rope[0].x += delta.x;
+        rope[0].y += delta.y;
+        for idx in 1..rope.len() {
+            let lead = rope[idx - 1];
+            let follow = rope[idx];
+            rope[idx] = move_tail(lead, follow);
+        }
+        visited.insert(rope.last().unwrap().clone());
     }
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
+    let start_pos = Posn { x: 0, y: 0 };
     let mut locations = HashSet::<Posn>::new();
-    let mut head = Posn { x: 0, y: 0 };
-    let mut tail = Posn { x: 0, y: 0 };
+    let mut rope: Vec<Posn> = vec![start_pos; 2];
+    locations.insert(rope.last().unwrap().clone());
+
     for line in input.lines() {
         let mut words = line.split(" ");
         let direction = words.next().unwrap();
         let count = words.next().unwrap().parse::<u32>().unwrap();
-        execute_line(direction, count, &mut head, &mut tail, &mut locations);
+        execute_line(direction, count, &mut rope, &mut locations);
     }
 
     Some(locations.len() as u32)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let start_pos = Posn { x: 0, y: 0 };
+    let mut locations = HashSet::<Posn>::new();
+    let mut rope: Vec<Posn> = vec![start_pos; 10];
+    locations.insert(rope.last().unwrap().clone());
+
+    for line in input.lines() {
+        let mut words = line.split(" ");
+        let direction = words.next().unwrap();
+        let count = words.next().unwrap().parse::<u32>().unwrap();
+        execute_line(direction, count, &mut rope, &mut locations);
+    }
+
+    Some(locations.len() as u32)
 }
 
 fn main() {
@@ -110,7 +115,7 @@ mod tests {
     #[test]
     fn test_part_two() {
         let input = aoc::read_file("examples", 9);
-        assert_eq!(part_two(&input), None);
+        assert_eq!(part_two(&input), Some(1));
     }
 
     #[test]
@@ -158,6 +163,11 @@ mod tests {
         let head = Posn { x: 5, y: 3 };
         let tail = Posn { x: 7, y: 2 };
         let expected = Posn { x: 6, y: 3 };
+        assert_eq!(move_tail(head, tail), expected);
+
+        let head = Posn { x: 5, y: 3 };
+        let tail = Posn { x: 2, y: 2 };
+        let expected = Posn { x: 4, y: 3 };
         assert_eq!(move_tail(head, tail), expected);
     }
 }
