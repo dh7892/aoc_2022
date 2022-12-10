@@ -17,7 +17,7 @@ enum OpType {
 #[derive(Debug)]
 struct Op {
     op_type: OpType,
-    arg: Option<i32>,
+    arg: i32,
 }
 
 fn noop(input: &str) -> IResult<&str, Op> {
@@ -26,7 +26,7 @@ fn noop(input: &str) -> IResult<&str, Op> {
         input,
         Op {
             op_type: OpType::Noop,
-            arg: None,
+            arg: 0,
         },
     ))
 }
@@ -36,7 +36,7 @@ fn addx(input: &str) -> IResult<&str, Op> {
         input,
         Op {
             op_type: OpType::Add,
-            arg: Some(arg),
+            arg: arg,
         },
     ))
 }
@@ -53,7 +53,7 @@ fn parse_lines(input: &str) -> IResult<&str, VecDeque<Op>> {
             OpType::Add => {
                 op_queue.push_back(Op {
                     op_type: OpType::Processing,
-                    arg: None,
+                    arg: 0,
                 });
                 op_queue.push_back(op);
             }
@@ -65,51 +65,45 @@ fn parse_lines(input: &str) -> IResult<&str, VecDeque<Op>> {
     Ok((input, op_queue))
 }
 
-struct CPU {
-    cycle: usize,
-    register: i32,
-    current_op: Op,
-    op_queue: VecDeque<Op>,
-}
-
-impl CPU {
-    /// Advance once cycle
-    fn tick(self: &mut Self) {
-        self.cycle += 1;
-        match self.current_op.op_type {
-            OpType::Add => {
-                self.register += self.current_op.arg.unwrap();
-            }
-            OpType::Noop | OpType::Processing => {}
-        }
-        self.current_op = self.op_queue.pop_front().unwrap();
+fn register_for_cycles(input: &str) -> Vec<i32> {
+    let (_, mut ops) = parse_lines(input).unwrap();
+    let mut reg_over_time: Vec<i32> = Vec::new();
+    let mut current_reg = 1;
+    ops.push_front(Op {
+        op_type: OpType::Processing,
+        arg: 0,
+    });
+    reg_over_time.push(current_reg);
+    for op in ops {
+        current_reg += op.arg;
+        reg_over_time.push(current_reg);
     }
-}
-
-fn cycle_is_interesting(cycle: usize) -> bool {
-    (cycle as i32 - 19) % 40 == 0
+    reg_over_time
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let (_, mut ops) = parse_lines(input).unwrap();
-    let first_op = ops.pop_front().unwrap();
-    let mut cpu = CPU {
-        cycle: 0,
-        current_op: first_op,
-        register: 1,
-        op_queue: ops,
-    };
-    let mut score = 0;
-    while !cpu.op_queue.is_empty() {
-        if cycle_is_interesting(cpu.cycle) {
-            score += cpu.register * (cpu.cycle as i32 + 1);
-        }
-        cpu.tick();
-    }
+    let reg_over_time = register_for_cycles(input);
+    let score = reg_over_time
+        .iter()
+        .enumerate()
+        .skip(20)
+        .step_by(40)
+        .map(|(idx, value)| idx as i32 * value)
+        .sum::<i32>();
     Some(score as u32)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
+    let reg_over_time = register_for_cycles(input);
+    let mut raw_pixels = vec!["."; 240];
+    for idx in 0..240 {
+        let r = reg_over_time[idx + 1];
+        let x_pos = idx % 40;
+        if (r - x_pos as i32).abs() <= 1 {
+            raw_pixels[idx] = "#";
+        }
+    }
+    dbg!(raw_pixels);
     None
 }
 
