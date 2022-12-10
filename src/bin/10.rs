@@ -95,15 +95,19 @@ pub fn part_one(input: &str) -> Option<u32> {
 
 pub fn part_two(input: &str) -> Option<u32> {
     let reg_over_time = register_for_cycles(input);
-    let mut raw_pixels = vec!["."; 240];
+    let mut row = vec![" "; 40];
     for idx in 0..240 {
-        let r = reg_over_time[idx + 1];
         let x_pos = idx % 40;
+        if x_pos == 39 {
+            // Print out and reset row
+            println!("{}", row.clone().into_iter().collect::<String>());
+            row.fill(" ");
+        }
+        let r = reg_over_time[idx + 1];
         if (r - x_pos as i32).abs() <= 1 {
-            raw_pixels[idx] = "#";
+            row[x_pos] = "#";
         }
     }
-    dbg!(raw_pixels);
     None
 }
 
