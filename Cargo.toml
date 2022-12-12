@@ -9,6 +9,7 @@ default-run = "aoc"
 [dependencies]
 indicatif = "0.17.2"
 itertools = "0.10.5"
+memoize = "0.3.3"
 nom = "7.1.1"
 pico-args = "0.5.0"
 rug = "1.18.0"

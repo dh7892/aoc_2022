@@ -1,7 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::BinaryHeap;
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+};
 
-use itertools::Itertools;
-
+use memoize::memoize;
 type Map = Vec<Vec<u32>>;
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -10,6 +13,35 @@ enum Direction {
     Down,
     Left,
     Right,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct State {
+    row_idx: usize,
+    col_idx: usize,
+    distance: u32,
+}
+// The priority queue depends on `Ord`.
+// Explicitly implement the trait so the queue becomes a min-heap
+// instead of a max-heap.
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that the we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other
+            .distance
+            .cmp(&self.distance)
+            .then_with(|| self.row_idx.cmp(&other.row_idx))
+            .then_with(|| self.col_idx.cmp(&other.col_idx))
+    }
+}
+
+// `PartialOrd` needs to be implemented as well.
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 fn target(row_idx: usize, col_idx: usize, direction: &Direction) -> (usize, usize) {
@@ -101,28 +133,11 @@ fn process_location(
     col_idx: usize,
     heights: &Map,
     distances: &mut Map,
-) {
-    // Update our distance
-    distances[row_idx][col_idx] = distance;
-    let allowed_directions = allowed_directions_for_location(row_idx, col_idx, heights);
-    for direction in allowed_directions.iter() {
-        let (target_row, target_col) = target(row_idx, col_idx, direction);
-        let target_distance = distance + 1;
-        if distances[target_row][target_col] > target_distance {
-            process_location(target_distance, target_row, target_col, heights, distances);
-        }
-    }
-}
-fn process_location_pt_2(
-    distance: u32,
-    row_idx: usize,
-    col_idx: usize,
-    heights: &Map,
-    distances: &mut Map,
+    reset_at_a: bool,
 ) {
     // Update our distance
     let mut corrected_dist = distance;
-    if heights[row_idx][col_idx] == 1 {
+    if reset_at_a && heights[row_idx][col_idx] == 1 {
         // Reset to 0 as we are on the ground
         corrected_dist = 0;
     }
@@ -132,70 +147,29 @@ fn process_location_pt_2(
         let (target_row, target_col) = target(row_idx, col_idx, direction);
         let target_distance = corrected_dist + 1;
         if distances[target_row][target_col] > target_distance {
-            process_location_pt_2(target_distance, target_row, target_col, heights, distances);
+            process_location(
+                target_distance,
+                target_row,
+                target_col,
+                heights,
+                distances,
+                reset_at_a,
+            );
         }
     }
 }
 
-fn print_visited(distances: &Map, heights: &Map) {
-    let height_lookup = ('S'..='S')
-        .chain('a'..='z')
-        .chain('E'..='E')
-        .enumerate()
-        .collect::<HashMap<usize, char>>();
-
-    let output = distances
-        .iter()
-        .enumerate()
-        .map(|(row_idx, row)| {
-            row.iter()
-                .enumerate()
-                .map(|(col_idx, &dist)| {
-                    let h = heights[row_idx][col_idx] as usize;
-                    let c = height_lookup[&h];
-                    match dist == std::u32::MAX {
-                        true => c.to_uppercase().next().unwrap(),
-                        false => c,
-                    }
-                })
-                .join("")
-        })
-        .join("\n");
-    println!("{}", output);
-}
-fn print_max(distances: &Map) {
-    let output = distances
-        .iter()
-        .map(|row| {
-            row.iter()
-                .map(|&dist| match dist == std::u32::MAX {
-                    true => 0,
-                    false => dist,
-                })
-                .max()
-                .unwrap()
-        })
-        .max()
-        .unwrap();
-    println!("{}", output);
-}
-
 pub fn part_one(input: &str) -> Option<u32> {
     let (heights, mut distances, start_row, start_col, end_row, end_col) = input_to_heights(input);
-    process_location(0, start_row, start_col, &heights, &mut distances);
-    print_max(&distances);
+    process_location(0, start_row, start_col, &heights, &mut distances, false);
     let result = distances[end_row][end_col];
-    print_visited(&distances, &heights);
     Some(result)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
     let (heights, mut distances, start_row, start_col, end_row, end_col) = input_to_heights(input);
-    let (rows, cols) = (heights.len(), heights[0].len());
-    process_location_pt_2(0, start_row, start_col, &heights, &mut distances);
-    print_max(&distances);
+    process_location(0, start_row, start_col, &heights, &mut distances, true);
     let result = distances[end_row][end_col];
-    print_visited(&distances, &heights);
     Some(result)
 }
 
