@@ -1,5 +1,3 @@
-#![feature(iter_array_chunks)]
-
 use std::cmp;
 
 use itertools::Itertools;
@@ -162,31 +160,8 @@ mod tests {
 
     #[test]
     fn test_parse_input() {
-        let input = "[1,1,3,1,1]
-[1,1,5,1,1]
-
-[[1],[2,3,4]]
-[[1],4]
-
-[9]
-[[8,7,6]]
-
-[[4,4],4,4]
-[[4,4],4,4,4]
-
-[7,7,7,7]
-[7,7,7]
-
-[]
-[3]
-
-[[[]]]
-[[]]
-
-[1,[2,[3,[4,[5,6,7]]]],8,9]
-[1,[2,[3,[4,[5,6,0]]]],8,9]";
-        let (_, result) = parse_all_input(input).unwrap();
-        dbg!(&result);
+        let input = aoc::read_file("examples", 13);
+        let (_, result) = parse_all_input(&input).unwrap();
         assert_eq!(result.len(), 8);
     }
 }
