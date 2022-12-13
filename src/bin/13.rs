@@ -45,44 +45,51 @@ enum Status {
 }
 
 fn go_compare(left: &Element, right: &Element) -> Status {
+    use std::cmp::Ordering::*;
+    use Element::*;
+    use Status::*;
     match (left, right) {
-        (Element::List(left_l), Element::List(right_l)) => {
+        (List(left_l), List(right_l)) => {
             let common_len = cmp::min(left_l.len(), right_l.len());
             for idx in 0..common_len {
                 let result = go_compare(&left_l[idx].clone(), &right_l[idx].clone());
                 match result {
-                    Status::Correct => return Status::Correct,
-                    Status::Incorrect => return Status::Incorrect,
-                    Status::Continue => {}
+                    Correct => return Correct,
+                    Incorrect => return Incorrect,
+                    Continue => {}
                 }
             }
             // If we get here, the lists we didn't find a definitive result yet.
+            // If the lists are not the same length, we can work out the correctness
             match left_l.len().partial_cmp(&right_l.len()).unwrap() {
-                std::cmp::Ordering::Less => return Status::Correct,
-                std::cmp::Ordering::Equal => return Status::Continue,
-                std::cmp::Ordering::Greater => return Status::Incorrect,
+                Less => return Correct,
+                Equal => return Continue,
+                Greater => return Incorrect,
             }
         }
-        (Element::List(l), Element::Value(r)) => go_compare(
-            &Element::List(l.clone()),
-            &Element::List(vec![Element::Value(r.clone())]),
-        ),
-        (Element::Value(l), Element::List(r)) => go_compare(
-            &Element::List(vec![Element::Value(l.clone())]),
-            &Element::List(r.clone()),
-        ),
-        (Element::Value(left_v), Element::Value(right_v)) => {
-            if left_v < right_v {
-                Status::Correct
-            } else if left_v == right_v {
-                Status::Continue
-            } else {
-                Status::Incorrect
-            }
-        }
+        (List(l), Value(r)) => go_compare(&List(l.clone()), &List(vec![Value(r.clone())])),
+        (Value(l), List(r)) => go_compare(&List(vec![Value(l.clone())]), &List(r.clone())),
+        (Value(left_v), Value(right_v)) => match left_v.partial_cmp(right_v).unwrap() {
+            Less => Correct,
+            Equal => Continue,
+            Greater => Incorrect,
+        },
     }
 }
-
+/// Note this sort algorithm requires that subsequent elements in the input
+/// will have a place to go in the sorted list. E.g. would work for sorting this
+/// list of numbers:
+/// 6,5,4 because 5 needs to go before 6, which will already have been put in the sorted list
+/// It would also work for 5, 6, 4 by chance because, when we try to add 6, it has nowhere to go and
+/// will get put on the end (which happens to be correct too)
+///
+/// But for 6, 4, 5 we will end up with 5, 6, 4 as our sorted list because trying to add 4 will put
+/// it on the end due to 5 not yet being in the list.
+///
+/// If we wanted to generalise this properly, we'd need not put on the end if we can't find an index
+/// and keep re-processing until all elements are found a home
+/// But it seems the input for this problem is in the right order for us to make this work so we don't
+/// have to fix this
 fn sort_elements(elements: Vec<Element>) -> Vec<Element> {
     let mut result = Vec::new();
     for el in elements {
