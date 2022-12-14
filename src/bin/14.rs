@@ -164,21 +164,11 @@ enum SandOutcome {
 }
 
 fn future_locations(point: &Point) -> Vec<Point> {
-    let next_row = point.y + 1;
-    vec![
-        Point {
-            x: point.x,
-            y: next_row,
-        },
-        Point {
-            x: point.x - 1,
-            y: next_row,
-        },
-        Point {
-            x: point.x + 1,
-            y: next_row,
-        },
-    ]
+    let y = point.y + 1;
+    vec![point.x, point.x - 1, point.x + 1]
+        .iter()
+        .map(|&x| Point { x, y })
+        .collect()
 }
 
 fn simulate_grain(
@@ -217,27 +207,25 @@ fn simulate_grain(
 pub fn part_one(input: &str) -> Option<u32> {
     let (mut grid, mapper) = input_to_grid(input);
     let ingress = Point { x: 500, y: 0 };
-    print_grid(&grid);
     let mut count: u32 = 0;
 
     while simulate_grain(&mut grid, &mapper, &ingress) != SandOutcome::Free {
         count += 1;
     }
-    print_grid(&grid);
     Some(count)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
     let (mut grid, mapper) = input_to_grid_with_floor(input);
     let ingress = Point { x: 500, y: 0 };
-    print_grid(&grid);
     let mut count: u32 = 0;
 
     while grid[mapper.to_index(&ingress)] != Content::Sand {
+        print!("{}[2J", 27 as char);
+        print_grid(&grid);
         simulate_grain(&mut grid, &mapper, &ingress);
         count += 1;
     }
-    print_grid(&grid);
     let grains = grid
         .elements_column_major_iter()
         .map(|e| match e {
