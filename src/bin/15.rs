@@ -137,7 +137,6 @@ fn excluded_from_row(sensors: &Vec<Sensor>, row: i32) -> u32 {
 fn row_has_missing_spot(sensors: &Vec<Sensor>, row: i32, min: i32, max: i32) -> Option<i32> {
     // Check if the row has exactly 1 unknown item on it
     // if so ,return the idx of that missing space
-    let locations = max - min;
     let mut ranges = BoundedRangeList::new(Some(min), Some(max));
     let mut beacons_on_row = HashSet::<i32>::new();
     for s in sensors {
