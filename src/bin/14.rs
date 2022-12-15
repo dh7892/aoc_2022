@@ -1,12 +1,10 @@
 use std::fmt::Display;
-use std::rc::Rc;
 
 use array2d::Array2D;
-use euclid::Vector2D;
 use itertools::Itertools;
 use nom::bytes::complete::tag;
 use nom::character::complete::{i32 as nom32, newline};
-use nom::sequence::{delimited, separated_pair, tuple};
+use nom::sequence::tuple;
 use nom::{multi::separated_list1, IResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -218,13 +216,11 @@ pub fn part_one(input: &str) -> Option<u32> {
 pub fn part_two(input: &str) -> Option<u32> {
     let (mut grid, mapper) = input_to_grid_with_floor(input);
     let ingress = Point { x: 500, y: 0 };
-    let mut count: u32 = 0;
 
     while grid[mapper.to_index(&ingress)] != Content::Sand {
         print!("{}[2J", 27 as char);
         print_grid(&grid);
         simulate_grain(&mut grid, &mapper, &ingress);
-        count += 1;
     }
     let grains = grid
         .elements_column_major_iter()
@@ -278,7 +274,7 @@ mod tests {
     fn test_to_index() {
         let input = aoc::read_file("examples", 14);
         let (_, paths) = path_list(&input).unwrap();
-        let (min, max) = find_min_max(&paths);
+        let (min, _) = find_min_max(&paths);
         let mapper = IndexMapper {
             x_min: min.x,
             y_min: min.y,
